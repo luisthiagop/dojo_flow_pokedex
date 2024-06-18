@@ -1,9 +1,13 @@
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const pokemonRoute = require('./routes/pokemon');
 
 // Middleware para parsear JSON
 app.use(express.json());
+
+// Middleware CORS
+app.use(cors());
 
 // Rotas
 app.use('/pokemon', pokemonRoute);
