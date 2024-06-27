@@ -483,3 +483,337 @@ Isso executará os testes de mutantes e fornecerá um relatório detalhado sobre
 ### Conclusão
 
 Agora você tem testes unitários configurados para o serviço `pokemonService.js` utilizando Jest e cobertura de código. Além disso, você configurou testes de mutantes usando Stryker para garantir que seus testes são robustos. A partir daqui, você pode expandir os testes para outras partes do seu projeto.
+
+
+----------------------------------- Correção de erro do striker
+
+O erro que você está recebendo indica que o Stryker está esperando que o arquivo de configuração (`stryker.conf.js`) exporte um objeto diretamente, ao invés de uma função que recebe um objeto de configuração.
+
+Você pode corrigir isso alterando seu arquivo `stryker.conf.js` para exportar um objeto diretamente. Veja como você pode fazer isso:
+
+```javascript
+module.exports = {
+  mutator: "javascript",
+  packageManager: "npm",
+  reporters: ["clear-text", "progress"],
+  testRunner: "jest",
+  transpilers: [],
+  testFramework: "jest",
+  coverageAnalysis: "off",
+  mutate: ["src/services/pokemonService.js"]
+};
+```
+
+Isso deve resolver o erro "Invalid config file "stryker.conf.js". Default export of config file must be an object!" e permitir que você execute seus testes de mutação com o Stryker.
+
+Caso tenha mais alguma dúvida ou precise de mais informações, estou à disposição para ajudar!
+
+
+------------------------------------Alteração de config para inclusão de arquivos
+
+Claro! Vou ajustar o seu arquivo stryker.conf.js para que ele alcance todos os arquivos .js para teste e ignore os arquivos que estão na pasta __tests__. Vou assumir que todos os arquivos .js que você deseja testar estão dentro da pasta bff.
+
+Aqui está a configuração ajustada:
+
+module.exports = {
+  mutator: "javascript",
+  packageManager: "npm",
+  reporters: ["clear-text", "progress"],
+  testRunner: "jest",
+  transpilers: [],
+  testFramework: "jest",
+  coverageAnalysis: "off",
+  mutate: [
+    "bff/**/*.js",
+    "!bff/**/__tests__/**/*.js"
+  ]
+};
+EXPLICAÇÃO:
+mutate: ["bff/**/*.js", "!bff/**/__tests__/**/*.js"]: Esta configuração indica ao Stryker para incluir todos os arquivos .js dentro da pasta bff e suas subpastas, exceto aqueles que estão dentro de qualquer pasta __tests__.
+Se houver mais alguma coisa que você precise ajustar ou outra dúvida que você tenha, estou aqui para ajudar!
+
+
+--------------------------------------Alteração de config para exclusão de arquivos Stryker e Jest
+
+Claro! Vamos ajustar o arquivo de configuração para que o jest e o stryker ignorem o arquivo bff/index.js.
+
+Primeiro, vamos ajustar a configuração do Stryker:
+
+module.exports = {
+  mutator: "javascript",
+  packageManager: "npm",
+  reporters: ["clear-text", "progress"],
+  testRunner: "jest",
+  transpilers: [],
+  testFramework: "jest",
+  coverageAnalysis: "off",
+  mutate: [
+    "bff/**/*.js",
+    "!bff/**/__tests__/**/*.js",
+    "!bff/index.js"
+  ]
+};
+Agora, você precisa ajustar a configuração do Jest para ignorar bff/index.js. Isso geralmente é feito no arquivo de configuração do Jest (por exemplo, jest.config.js ou no campo de configuração Jest no package.json). Vou mostrar como fazer isso usando um arquivo jest.config.js.
+
+Se você usa um arquivo jest.config.js, adicione a configuração abaixo:
+
+module.exports = {
+  // Outras configurações do Jest
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "/bff/__tests__/",
+    "/bff/index.js"
+  ],
+  // Outras configurações do Jest
+};
+Se você configura o Jest no package.json, adicione a configuração no campo jest:
+
+{
+  "jest": {
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/bff/__tests__/",
+      "/bff/index.js"
+    ]
+  }
+}
+EXPLICAÇÃO:
+"mutate": ["bff/**/*.js", "!bff/**/__tests__/**/*.js", "!bff/index.js"]: Esta configuração indica ao Stryker para incluir todos os arquivos .js dentro da pasta bff e suas subpastas, exceto aqueles que estão dentro de qualquer pasta __tests__ e o arquivo bff/index.js.
+testPathIgnorePatterns: Esta configuração do Jest especifica quais caminhos devem ser ignorados ao procurar arquivos de teste. Estamos adicionando o caminho "/bff/index.js" para garantir que o Jest ignore este arquivo.
+Essas alterações devem garantir que tanto o Stryker quanto o Jest ignorem o arquivo bff/index.js. Se precisar de mais alguma coisa, estou à disposição!
+
+
+---------------------------------------testes unitários do arquivo pokemon.js
+
+Para escrever testes unitários utilizando Jest para o arquivo descrito, vamos focar em testar as rotas e o comportamento esperado, incluindo cenários de sucesso e de falha. Você pode usar a biblioteca supertest para facilitar o teste das rotas do Express.
+
+Primeiro, vamos instalar o supertest se ainda não estiver instalado:
+
+npm install --save-dev supertest
+Agora, vamos escrever os testes unitários. Crie um arquivo de testes, por exemplo pokemonRoutes.test.js, e adicione o seguinte código:
+
+const request = require('supertest');
+const express = require('express');
+const router = require('./path/to/your/router'); // Ajuste o caminho para o arquivo do seu router
+const pokemonService = require('../services/pokemonService');
+
+const app = express();
+app.use(express.json());
+app.use('/pokemon', router);
+
+jest.mock('../services/pokemonService');
+
+describe('Pokemon Routes', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return pokemon data when given a valid name', async () => {
+    const mockPokemonData = { name: 'pikachu', type: 'electric' };
+    pokemonService.getPokemonByName.mockResolvedValue(mockPokemonData);
+
+    const response = await request(app).get('/pokemon/pikachu');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(mockPokemonData);
+  });
+
+  it('should return 500 status code and error message when service throws an error', async () => {
+    pokemonService.getPokemonByName.mockRejectedValue(new Error('Service Error'));
+
+    const response = await request(app).get('/pokemon/pikachu');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'Erro ao buscar Pokémon' });
+  });
+});
+EXPLICAÇÃO
+Setup do Teste:
+
+Importamos request do supertest para facilitar o envio de requisições HTTP.
+Criamos uma instância do app express e usamos o middleware express.json() para analisar JSON.
+Incluímos o router que você quer testar na rota /pokemon.
+Mocking do Serviço:
+
+Usamos jest.mock para mockar o módulo pokemonService.
+Testes:
+
+Teste de Sucesso:
+Mockamos o método getPokemonByName para retornar dados fictícios do Pokémon.
+Enviamos uma requisição GET para /pokemon/pikachu e verificamos se a resposta tem o status 200 e contém os dados esperados do Pokémon.
+Teste de Falha:
+Mockamos o método getPokemonByName para lançar um erro.
+Enviamos uma requisição GET para /pokemon/pikachu e verificamos se a resposta tem o status 500 e contém a mensagem de erro esperada.
+RODANDO OS TESTES
+Certifique-se de que o Jest esteja configurado corretamente no seu projeto. Você pode rodar os testes com o seguinte comando:
+
+npm test
+Isso deve executar os testes que você escreveu e fornecer feedback sobre se eles passaram ou falharam.
+
+Se precisar de mais alguma coisa ou tiver outras dúvidas, estou à disposição!
+
+
+
+
+
+----------------------------------------------------- Resultado do testes unitarios com jest e stryker para vuejs
+
+Entendi! Vamos configurar o Jest e o Stryker para trabalhar com arquivos .vue na pasta vue-pokeapp.
+
+CONFIGURAÇÃO DO JEST
+Para configurar o Jest para testar arquivos .vue, você precisará instalar alguns pacotes adicionais e configurar o Jest apropriadamente.
+
+Instalando Pacotes Necessários: Certifique-se de ter os pacotes necessários instalados:
+
+npm install --save-dev jest vue-jest @vue/test-utils babel-jest
+Configurando o Jest: Crie ou edite o arquivo jest.config.js na raiz do projeto (ou na raiz da pasta vue-pokeapp se for um projeto separado):
+
+module.exports = {
+  moduleFileExtensions: ['js', 'json', 'vue'],
+  transform: {
+    '^.+\\.vue$': 'vue-jest',
+    '^.+\\.js$': 'babel-jest'
+  },
+  testMatch: [
+    '<rootDir>/vue-pokeapp/**/*.spec.js',  // Ajuste se necessário
+    '<rootDir>/vue-pokeapp/**/*.spec.vue'  // Ajuste se necessário
+  ],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/vue-pokeapp/$1'
+  },
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/vue-pokeapp/__tests__/'
+  ]
+};
+CONFIGURAÇÃO DO STRYKER
+Para configurar o Stryker para trabalhar com arquivos .vue, você precisará ajustar o arquivo de configuração do Stryker (stryker.conf.js).
+
+Instalando Pacotes Necessários: Certifique-se de ter o pacote @stryker-mutator/vue-mutator instalado:
+
+npm install --save-dev @stryker-mutator/vue-mutator
+Configurando o Stryker: Crie ou edite o arquivo stryker.conf.js na raiz do projeto (ou na raiz da pasta vue-pokeapp se for um projeto separado):
+
+module.exports = {
+  mutator: "vue",
+  packageManager: "npm",
+  reporters: ["clear-text", "progress"],
+  testRunner: "jest",
+  jest: {
+    config: require('./jest.config.js')
+  },
+  coverageAnalysis: "off",
+  mutate: [
+    "vue-pokeapp/**/*.vue",
+    "!vue-pokeapp/**/__tests__/**/*.vue",
+    "!vue-pokeapp/index.vue"  // Ajuste se necessário
+  ]
+};
+EXPLICAÇÃO
+Jest:
+
+moduleFileExtensions: Especifica as extensões de arquivos que o Jest deve reconhecer.
+transform: Define como os arquivos .vue e .js devem ser transformados.
+testMatch: Define onde encontrar os arquivos de teste.
+moduleNameMapper: Ajuda a mapear os caminhos dos módulos.
+testPathIgnorePatterns: Ignora os diretórios especificados ao procurar arquivos de teste.
+Stryker:
+
+mutator: Define o mutador para arquivos .vue.
+jest: Inclui a configuração do Jest dentro da configuração do Stryker.
+coverageAnalysis: Define a análise de cobertura.
+mutate: Define quais arquivos .vue devem ser incluídos e excluídos dos testes de mutação.
+Com essas configurações, o Jest e o Stryker estarão prontos para testar arquivos .vue na pasta vue-pokeapp.
+
+Se precisar de mais alguma coisa ou tiver outras dúvidas, estou à disposição!
+
+----------------------------------------------------- 
+Para criar uma cobertura de testes unitários para o componente Vue PokemonInfo usando Jest, vamos focar nos seguintes aspectos:
+
+Verificar se o método fetchPokemon está sendo chamado corretamente na montagem do componente.
+Testar o método fetchPokemon para garantir que ele faz a requisição correta e atualiza o estado do componente.
+Testar o filtro capitalize.
+Primeiro, certifique-se de que você tem o Jest configurado conforme mencionado anteriormente. Além disso, você precisará do @vue/test-utils para montar e testar o componente Vue.
+
+Instale as dependências necessárias se ainda não estiverem instaladas:
+
+npm install --save-dev @vue/test-utils axios jest
+Agora, crie um arquivo de teste, por exemplo PokemonInfo.spec.js, e adicione o seguinte código:
+
+import { mount } from '@vue/test-utils';
+import axios from 'axios';
+import PokemonInfo from '@/components/PokemonInfo.vue'; // Ajuste o caminho conforme necessário
+
+jest.mock('axios');
+
+describe('PokemonInfo.vue', () => {
+  let wrapper;
+
+  beforeEach(() => {
+    wrapper = mount(PokemonInfo);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('calls fetchPokemon on mount', () => {
+    const fetchPokemonSpy = jest.spyOn(wrapper.vm, 'fetchPokemon');
+    wrapper.vm.$mount();
+    expect(fetchPokemonSpy).toHaveBeenCalledWith('pikachu');
+  });
+
+  it('fetchPokemon method makes an API call and updates pokemon data', async () => {
+    const mockData = { name: 'pikachu', type: 'electric' };
+    axios.get.mockResolvedValue({ data: mockData });
+
+    await wrapper.vm.fetchPokemon('pikachu');
+
+    expect(axios.get).toHaveBeenCalledWith('http://localhost:3000/pokemon/pikachu');
+    expect(wrapper.vm.pokemon).toEqual(mockData);
+  });
+
+  it('fetchPokemon method handles API errors', async () => {
+    console.error = jest.fn();
+    axios.get.mockRejectedValue(new Error('API Error'));
+
+    await wrapper.vm.fetchPokemon('pikachu');
+
+    expect(axios.get).toHaveBeenCalledWith('http://localhost:3000/pokemon/pikachu');
+    expect(wrapper.vm.pokemon).toBeNull();
+    expect(console.error).toHaveBeenCalledWith('Erro ao buscar Pokémon:', expect.any(Error));
+  });
+
+  it('capitalize filter capitalizes the first letter of a string', () => {
+    const result = wrapper.vm.$options.filters.capitalize('pikachu');
+    expect(result).toBe('Pikachu');
+  });
+
+  it('capitalize filter returns an empty string for null or undefined input', () => {
+    expect(wrapper.vm.$options.filters.capitalize(null)).toBe('');
+    expect(wrapper.vm.$options.filters.capitalize(undefined)).toBe('');
+  });
+});
+EXPLICAÇÃO
+Setup dos Testes:
+
+Importamos mount de @vue/test-utils para montar o componente.
+Mockamos o axios para evitar chamadas reais à API.
+Criamos um wrapper do componente PokemonInfo antes de cada teste.
+Testes:
+
+Montagem do Componente:
+Verificamos se o método fetchPokemon é chamado com o nome 'pikachu' quando o componente é montado.
+Método fetchPokemon:
+Testamos se o método faz uma chamada correta à API e atualiza o estado do componente com os dados do Pokémon.
+Verificamos se o método trata os erros da API corretamente e registra o erro no console.
+Filtro capitalize:
+Testamos se o filtro capitalize capitaliza corretamente a primeira letra de uma string.
+Verificamos se o filtro retorna uma string vazia para entradas null ou undefined.
+RODANDO OS TESTES
+Você pode rodar os testes com o seguinte comando:
+
+npm test
+Isso deve executar os testes que você escreveu e fornecer feedback sobre se eles passaram ou falharam.
+
+Se precisar de mais alguma coisa ou tiver outras dúvidas, estou à disposição!
